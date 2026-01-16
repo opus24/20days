@@ -45,41 +45,46 @@ This challenge focuses on implementing high-performance kernels in both CUDA (C+
 - **Description**: One-dimensional convolution operation
 - **Topics**: Sliding window patterns, memory access patterns
 
-### Day 11: Dot Product
-- **Description**: Vector dot product computation
-- **Topics**: Reduction operations, parallel reduction
-
-### Day 12: GEMM (General Matrix Multiply)
-- **Description**: Optimized general matrix multiplication
-- **Topics**: Tiling, shared memory optimization, register blocking
-
-### Day 13: MSE (Mean Squared Error)
-- **Description**: Mean squared error loss computation
-- **Topics**: Reduction operations, error computation
-
-### Day 14: Top-K
-- **Description**: Finding top-K elements
-- **Topics**: Selection algorithms, sorting patterns
-
-### Day 15: Top-P (Nucleus Sampling)
-- **Description**: Top-P sampling for language models
-- **Topics**: Cumulative sum, threshold-based selection
-
-### Day 16: RoPE (Rotary Position Embedding)
-- **Description**: Rotary position embedding implementation
-- **Topics**: Trigonometric operations, position encoding
-
-### Day 17: Softmax
+### Day 11: Softmax
 - **Description**: Softmax activation function
 - **Topics**: Reduction operations, numerical stability
 
-### Day 18: LayerNorm
+### Day 12: LayerNorm
 - **Description**: Layer normalization
 - **Topics**: Mean and variance computation, normalization
 
-### Day 19: RMS Normalization
+### Day 13: RMS Normalization
 - **Description**: Root Mean Square normalization
 - **Topics**: RMS computation, normalization patterns
+
+### Day 14: Fused Softmax
+- **Description**: Fused softmax operation for improved performance
+- **Topics**: Kernel fusion, memory optimization
+- **Note**: Based on [Triton Tutorials](https://triton-lang.org/main/getting-started/tutorials/index.html)
+
+### Day 15: Fused Attention
+- **Description**: Fused attention mechanism implementation
+- **Topics**: Attention computation, kernel fusion
+- **Note**: Based on [Triton Tutorials](https://triton-lang.org/main/getting-started/tutorials/index.html)
+
+### Day 16: Group GEMM
+- **Description**: Grouped general matrix multiplication
+- **Topics**: Batch matrix operations, optimization techniques
+- **Note**: Based on [Triton Tutorials](https://triton-lang.org/main/getting-started/tutorials/index.html)
+
+### Day 17: Persistent Matmul
+- **Description**: Persistent matrix multiplication kernel
+- **Topics**: Persistent kernels, memory management
+- **Note**: Based on [Triton Tutorials](https://triton-lang.org/main/getting-started/tutorials/index.html)
+
+### Day 18: Block Scaled Matrix Multiplication
+- **Description**: Block-scaled matrix multiplication
+- **Topics**: Block scaling, numerical precision
+- **Note**: Based on [Triton Tutorials](https://triton-lang.org/main/getting-started/tutorials/index.html)
+
+### Day 19: RoPE (Rotary Position Embedding)
+- **Description**: Rotary position embedding implementation
+- **Topics**: Trigonometric operations, position encoding
 
 ### Day 20: 2D Convolution
 - **Description**: Two-dimensional convolution operation
@@ -93,4 +98,5 @@ This challenge focuses on implementing high-performance kernels in both CUDA (C+
 
 - [CUDA Programming Guide](https://docs.nvidia.com/cuda/)
 - [Triton Documentation](https://triton-lang.org/)
+- [Triton Tutorials](https://triton-lang.org/main/getting-started/tutorials/index.html)
 - [LeetGPU Platform](https://leetgpu.com/)
