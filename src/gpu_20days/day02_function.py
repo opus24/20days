@@ -33,3 +33,5 @@ def day02_function(input: torch.Tensor) -> torch.Tensor:
     day02_function_kernel[grid](input, output, N, BLOCK_SIZE=BLOCK_SIZE)
     return output
 
+
+

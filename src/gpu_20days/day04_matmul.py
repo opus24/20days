@@ -45,3 +45,5 @@ def day04_matmul(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     day04_matmul_kernel[grid](A, B, C, M, N, K, BLOCK_SIZE=BLOCK_SIZE)
     return C
 
+
+

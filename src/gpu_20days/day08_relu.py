@@ -28,3 +28,5 @@ def day08_relu(input: torch.Tensor) -> torch.Tensor:
     day08_relu_kernel[grid](input, output, N, BLOCK_SIZE=BLOCK_SIZE)
     return output
 
+
+

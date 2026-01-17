@@ -27,3 +27,5 @@ def day01_printAdd(input: torch.Tensor) -> torch.Tensor:
     day01_printAdd_kernel[grid](input, output, N, BLOCK_SIZE=BLOCK_SIZE)
     return output
 
+
+

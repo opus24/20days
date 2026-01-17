@@ -37,3 +37,5 @@ def day05_matrixAdd(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     day05_matrixAdd_kernel[grid](A, B, C, N, BLOCK_SIZE=BLOCK_SIZE)
     return C
 
+
+

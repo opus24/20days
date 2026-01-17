@@ -40,3 +40,5 @@ def day10_conv1d(input: torch.Tensor, kernel: torch.Tensor) -> torch.Tensor:
     day10_conv1d_kernel[grid](input, kernel, output, input_size, kernel_size, BLOCK_SIZE=BLOCK_SIZE)
     return output
 
+
+

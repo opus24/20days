@@ -1,7 +1,7 @@
 # GPU_Kernel_Study
 ## Triton/Cuda Kernel Study
 
-**CUDA & Triton 100-Day Challenge**
+**CUDA & Triton 20-Day Challenge**
 
 This challenge focuses on implementing high-performance kernels in both CUDA (C++) and Triton (Python). All implementations have been executed and verified for correctness on LeetGPU. The curriculum has been structured in order of difficulty by myself.
 

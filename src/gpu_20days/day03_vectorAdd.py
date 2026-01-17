@@ -28,3 +28,5 @@ def day03_vectorAdd(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     day03_vectorAdd_kernel[grid](A, B, C, N, BLOCK_SIZE=BLOCK_SIZE)
     return C
 
+
+

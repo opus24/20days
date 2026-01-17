@@ -160,7 +160,7 @@ torch::Tensor day10_conv1d_wrapper(torch::Tensor input, torch::Tensor kernel) {
 
 // Module definition
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-    m.doc() = "GPU 100 Days - CUDA kernels";
+    m.doc() = "GPU 20 Days - CUDA kernels";
     
     m.def("day01_printAdd", &day01_printAdd_wrapper, "Day 01: Print global indices");
     m.def("day02_function", &day02_function_wrapper, "Day 02: Device function example");

@@ -28,3 +28,5 @@ def day09_silu(input: torch.Tensor) -> torch.Tensor:
     day09_silu_kernel[grid](input, output, N, BLOCK_SIZE=BLOCK_SIZE)
     return output
 
+
+
