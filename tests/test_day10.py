@@ -1,14 +1,19 @@
 """
 Tests for Day 10: 1D Convolution (CUDA + Triton)
 """
+
+import sys
+from pathlib import Path
+
 import pytest
 import torch
-from conftest import (
-    ensure_cuda_device,
-    compare_kernel_with_pytorch,
-    benchmark_kernel_vs_pytorch,
-)
 
+# Add tests directory to path to import conftest
+tests_dir = Path(__file__).parent
+if str(tests_dir) not in sys.path:
+    sys.path.insert(0, str(tests_dir))
+
+from conftest import benchmark_kernel_vs_pytorch, compare_kernel_with_pytorch, ensure_cuda_device
 
 # Test cases: ((input_size, kernel_size), description)
 CONV1D_TEST_CASES = [
@@ -35,17 +40,19 @@ def test_conv1d_triton(params, description):
         from gpu_20days import day10_conv1d
     except ImportError:
         pytest.skip("gpu_20days package not available")
-    
+
     device = ensure_cuda_device()
     input_size, kernel_size = params
-    
-    print(f"Testing Triton conv1d with input_size={input_size}, kernel_size={kernel_size} ({description})...")
+
+    print(
+        f"Testing Triton conv1d with input_size={input_size}, kernel_size={kernel_size} ({description})..."
+    )
     input_arr = torch.randn(input_size, device=device, dtype=torch.float32)
     kernel = torch.randn(kernel_size, device=device, dtype=torch.float32)
-    
+
     output = day10_conv1d(input_arr, kernel)
     expected = conv1d_pytorch(input_arr, kernel)
-    
+
     torch.testing.assert_close(output, expected, rtol=1e-4, atol=1e-4)
 
 
@@ -56,15 +63,17 @@ def test_conv1d_cuda(params, description):
         from gpu_20days.cuda_kernels import day10_conv1d
     except ImportError:
         pytest.skip("CUDA kernels not built")
-    
+
     device = ensure_cuda_device()
     input_size, kernel_size = params
-    
-    print(f"Testing CUDA conv1d with input_size={input_size}, kernel_size={kernel_size} ({description})...")
+
+    print(
+        f"Testing CUDA conv1d with input_size={input_size}, kernel_size={kernel_size} ({description})..."
+    )
     input_arr = torch.randn(input_size, device=device, dtype=torch.float32)
     kernel = torch.randn(kernel_size, device=device, dtype=torch.float32)
-    
+
     output = day10_conv1d(input_arr, kernel)
     expected = conv1d_pytorch(input_arr, kernel)
-    
+
     torch.testing.assert_close(output, expected, rtol=1e-4, atol=1e-4)

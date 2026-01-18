@@ -1,4 +1,5 @@
 #include <cuda_runtime.h>
+#include <cstdio>
 
 #define ceil(x,y) (((x) + (y) - 1) / (y))
 #define BLOCK_SIZE 256
@@ -20,4 +21,3 @@ extern "C" void day01_printAdd(int N) {
     printThreadIndex<<<blocksPerGrid, threadsPerBlock>>>(N);
     cudaDeviceSynchronize();
 }
-

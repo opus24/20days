@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+.venv/
+*.egg-info/
+.Python
+
+# Build artifacts
+build/
+dist/
+*.egg
+wheels/
+
+# IDE
+.vscode/
+.cursor/
+.idea/
+*.swp
+*.swo
+*~
+
+# Cache
+.cache/
+.pytest_cache/
+*.pyc
+.mypy_cache/
+.ruff_cache/
+
+# Environment
+.env
+.venv
+venv/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Temporary files
+tmp.cu
+*.tmp
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CUDA build artifacts
+*.o
+*.a
+*.fatbin
+*.cubin
+*.ptx
+*.module_id
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# Coverage
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+
+# Lock files (optional - uncomment if you want to ignore)
+# uv.lock

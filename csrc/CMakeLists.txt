@@ -11,6 +11,32 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # Find packages
 find_package(Python REQUIRED COMPONENTS Interpreter Development)
+
+# Find PyTorch - try to find it in the Python environment
+execute_process(
+    COMMAND ${Python_EXECUTABLE} -c "import torch; import os; print(os.path.dirname(torch.__file__))"
+    OUTPUT_VARIABLE TORCH_PREFIX
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE TORCH_FOUND_RESULT
+)
+
+if(TORCH_FOUND_RESULT EQUAL 0 AND TORCH_PREFIX)
+    message(STATUS "Found PyTorch at: ${TORCH_PREFIX}")
+    # Try to find TorchConfig.cmake in common locations
+    set(TORCH_CMAKE_DIR "${TORCH_PREFIX}/share/cmake/Torch")
+    if(EXISTS "${TORCH_CMAKE_DIR}/TorchConfig.cmake")
+        set(Torch_DIR "${TORCH_CMAKE_DIR}")
+        message(STATUS "Found TorchConfig.cmake at: ${Torch_DIR}")
+    else()
+        # Fallback: add to CMAKE_PREFIX_PATH
+        list(APPEND CMAKE_PREFIX_PATH "${TORCH_PREFIX}")
+        message(STATUS "Added PyTorch to CMAKE_PREFIX_PATH: ${TORCH_PREFIX}")
+    endif()
+else()
+    message(WARNING "Could not find PyTorch via Python. Make sure PyTorch is installed in the Python environment.")
+endif()
+
 find_package(Torch REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
@@ -27,6 +53,16 @@ set(CUDA_SOURCES
     day08_relu.cu
     day09_silu.cu
     day10_conv1d.cu
+    day11_softmax.cu
+    day12_layernorm.cu
+    day13_rmsnorm.cu
+    day14_fused_softmax.cu
+    day15_fused_attention.cu
+    day16_group_gemm.cu
+    day17_persistent_matmul.cu
+    day18_block_scaled_matmul.cu
+    day19_rope.cu
+    day20_conv2d.cu
 )
 
 # Create the shared library
@@ -76,4 +112,3 @@ if(WIN32)
 else()
     set_target_properties(cuda_ops PROPERTIES SUFFIX ".so")
 endif()
-

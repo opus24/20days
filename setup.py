@@ -1,31 +1,38 @@
 """
 Setup script for GPU 100 Days Challenge
 """
+
 import os
 import subprocess
 import sys
 from pathlib import Path
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
-# Get the directory containing this setup.py
-ROOT_DIR = Path(__file__).parent.absolute()
-CSRC_DIR = ROOT_DIR / "csrc"
-
-# CUDA source files
+# CUDA source files (relative paths from setup.py)
 cuda_sources = [
-    str(CSRC_DIR / "bindings.cu"),
-    str(CSRC_DIR / "day01_printAdd.cu"),
-    str(CSRC_DIR / "day02_function.cu"),
-    str(CSRC_DIR / "day03_vectorAdd.cu"),
-    str(CSRC_DIR / "day04_matmul.cu"),
-    str(CSRC_DIR / "day05_matrixAdd.cu"),
-    str(CSRC_DIR / "day06_countElement.cu"),
-    str(CSRC_DIR / "day07_matrixCopy.cu"),
-    str(CSRC_DIR / "day08_relu.cu"),
-    str(CSRC_DIR / "day09_silu.cu"),
-    str(CSRC_DIR / "day10_conv1d.cu"),
+    "csrc/bindings.cu",
+    "csrc/day01_printAdd.cu",
+    "csrc/day02_function.cu",
+    "csrc/day03_vectorAdd.cu",
+    "csrc/day04_matmul.cu",
+    "csrc/day05_matrixAdd.cu",
+    "csrc/day06_countElement.cu",
+    "csrc/day07_matrixCopy.cu",
+    "csrc/day08_relu.cu",
+    "csrc/day09_silu.cu",
+    "csrc/day10_conv1d.cu",
+    "csrc/day11_softmax.cu",
+    "csrc/day12_layernorm.cu",
+    "csrc/day13_rmsnorm.cu",
+    "csrc/day14_fused_softmax.cu",
+    "csrc/day15_fused_attention.cu",
+    "csrc/day16_group_gemm.cu",
+    "csrc/day17_persistent_matmul.cu",
+    "csrc/day18_block_scaled_matmul.cu",
+    "csrc/day19_rope.cu",
+    "csrc/day20_conv2d.cu",
 ]
 
 # CUDA extension module

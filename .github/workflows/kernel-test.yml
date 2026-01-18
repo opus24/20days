@@ -1,0 +1,75 @@
+name: kernel-test
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    paths:
+      - "csrc/**"
+      - "src/**"
+      - "tests/**"
+      - "setup.py"
+      - "pyproject.toml"
+      - ".github/workflows/kernel-test.yml"
+
+env:
+  ACTION_NAME: "CI"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kernel-test:
+    runs-on: [runner-gpu]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies and build
+        run: |
+          uv sync --extra dev
+
+      - name: Verify CUDA availability
+        run: |
+          uv run python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}'); print(f'CUDA device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"N/A\"}')"
+
+      - name: Run kernel tests
+        run: |
+          uv run pytest tests/ \
+            --verbose \
+            --tb=short \
+            --junitxml=kernel_test_report.xml \
+            || true
+
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Kernel Test Results
+          path: kernel_test_report.xml
+          reporter: java-junit
+          fail-on-error: false
+
+      - name: Clean up build artifacts
+        if: always()
+        run: |
+          rm -rf build dist *.egg-info .pytest_cache
+          find . -name '__pycache__' -type d -exec rm -rf {} + || true
