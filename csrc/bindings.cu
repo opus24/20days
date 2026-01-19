@@ -13,7 +13,7 @@ extern "C" void day07_matrixCopy(const float* A, float* B, int N);
 extern "C" void day08_relu(const float* input, float* output, int N);
 extern "C" void day09_silu(const float* input, float* output, int N);
 extern "C" void day10_conv1d(const float* input, const float* kernel, float* output, int input_size, int kernel_size);
-extern "C" void day11_softmax(const float* input, float* output, int batch_size, int feature_size);
+extern "C" void day11_softmax(const float* input, float* output, int feature_size);
 extern "C" void day12_layernorm(const float* input, float* output, const float* gamma, const float* beta, int batch_size, int feature_size, float eps);
 extern "C" void day13_rmsnorm(const float* input, float* output, const float* weight, int batch_size, int feature_size, float eps);
 extern "C" void day14_fused_softmax(const float* input, float* output, const float* mask, int batch_size, int seq_len, int feature_size, float scale);
@@ -173,27 +173,14 @@ torch::Tensor day10_conv1d_wrapper(torch::Tensor input, torch::Tensor kernel) {
 torch::Tensor day11_softmax_wrapper(torch::Tensor input) {
     TORCH_CHECK(input.is_cuda(), "Input must be a CUDA tensor");
     TORCH_CHECK(input.dtype() == torch::kFloat32, "Input must be float32");
-    TORCH_CHECK(input.dim() >= 1, "Input must be at least 1D tensor");
+    TORCH_CHECK(input.dim() == 1, "Input must be 1D tensor");
 
-    // Flatten to 2D if needed: (batch_size, feature_size)
-    int batch_size = 1;
-    int feature_size = input.numel();
+    int feature_size = input.size(0);
+    torch::Tensor output = torch::zeros_like(input);
 
-    if (input.dim() == 2) {
-        batch_size = input.size(0);
-        feature_size = input.size(1);
-    } else if (input.dim() > 2) {
-        // Flatten all dimensions except the last
-        batch_size = input.numel() / input.size(-1);
-        feature_size = input.size(-1);
-    }
+    day11_softmax(input.data_ptr<float>(), output.data_ptr<float>(), feature_size);
 
-    torch::Tensor input_2d = input.view({batch_size, feature_size});
-    torch::Tensor output_2d = torch::zeros_like(input_2d);
-
-    day11_softmax(input_2d.data_ptr<float>(), output_2d.data_ptr<float>(), batch_size, feature_size);
-
-    return output_2d.view(input.sizes());
+    return output;
 }
 
 // Day 12: Layer normalization
