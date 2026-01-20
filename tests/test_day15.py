@@ -27,7 +27,7 @@ ATTENTION_TEST_CASES = [
 def test_fused_attention_triton(batch_size, num_heads, seq_len, head_dim, description):
     """Test Triton Fused Attention"""
     try:
-        from gpu_20days import day15_fused_attention
+        from gpu_20days.day15_fused_attention import day15_fused_attention
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

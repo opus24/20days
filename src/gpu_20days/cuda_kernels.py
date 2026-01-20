@@ -108,7 +108,7 @@ def day11_softmax(input: torch.Tensor) -> torch.Tensor:
 def day12_layernorm(
     input: torch.Tensor, gamma: torch.Tensor = None, beta: torch.Tensor = None, eps: float = 1e-5
 ) -> torch.Tensor:
-    """Day 12: Layer normalization"""
+    """Day 12: Layer normalization (batch_size is always 1)"""
     _check_cuda()
     assert cuda_ops is not None  # Type guard for mypy
     if gamma is None:

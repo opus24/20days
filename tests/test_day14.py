@@ -27,7 +27,7 @@ FUSED_SOFTMAX_TEST_CASES = [
 def test_fused_softmax_triton(batch_size, seq_len, feature_size, description):
     """Test Triton Fused Softmax"""
     try:
-        from gpu_20days import day14_fused_softmax
+        from gpu_20days.day14_fused_softmax import day14_fused_softmax
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

@@ -30,7 +30,7 @@ FUNCTION_TEST_CASES = [
 def test_function_triton(n, description):
     """Test Triton function (doubles input)"""
     try:
-        from gpu_20days import day02_function
+        from gpu_20days.day02_function import day02_function
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

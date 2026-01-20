@@ -36,7 +36,7 @@ def silu_pytorch(x):
 def test_silu_triton(n, description):
     """Test Triton SiLU"""
     try:
-        from gpu_20days import day09_silu
+        from gpu_20days.day09_silu import day09_silu
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

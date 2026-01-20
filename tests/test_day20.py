@@ -31,7 +31,7 @@ def test_conv2d_triton(
 ):
     """Test Triton 2D Convolution"""
     try:
-        from gpu_20days import day20_conv2d
+        from gpu_20days.day20_conv import day20_conv2d
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

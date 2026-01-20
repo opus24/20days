@@ -15,38 +15,41 @@ if str(tests_dir) not in sys.path:
 
 from conftest import benchmark_kernel_vs_pytorch, compare_kernel_with_pytorch, ensure_cuda_device
 
-# Test cases: (batch_size, feature_size, description)
+# Test cases: (feature_size, description) - batch_size is always 1
 LAYERNORM_TEST_CASES = [
-    (1, 10, "small_1x10"),
-    (10, 100, "medium_10x100"),
-    (32, 128, "medium_32x128"),
-    (100, 1000, "large_100x1000"),
+    (10, "small_10"),
+    (100, "medium_100"),
+    (128, "medium_128"),
+    (1000, "large_1000"),
 ]
 
 
-@pytest.mark.parametrize("batch_size,feature_size,description", LAYERNORM_TEST_CASES)
-def test_layernorm_triton(batch_size, feature_size, description):
+@pytest.mark.parametrize("feature_size,description", LAYERNORM_TEST_CASES)
+def test_layernorm_triton(feature_size, description):
     """Test Triton LayerNorm"""
     try:
-        from gpu_20days import day12_layernorm
+        from gpu_20days.day12_layernorm import day12_layernorm
     except ImportError:
         pytest.skip("gpu_20days package not available")
 
     device = ensure_cuda_device()
 
-    print(f"Testing Triton LayerNorm with shape ({batch_size}, {feature_size}) ({description})...")
-    input_tensor = torch.randn(batch_size, feature_size, device=device, dtype=torch.float32)
+    print(f"Testing Triton LayerNorm with shape ({feature_size},) ({description})...")
+    input_tensor = torch.randn(feature_size, device=device, dtype=torch.float32)
     gamma = torch.ones(feature_size, device=device, dtype=torch.float32)
     beta = torch.zeros(feature_size, device=device, dtype=torch.float32)
 
     output = day12_layernorm(input_tensor, gamma, beta)
-    expected = torch.nn.functional.layer_norm(input_tensor, (feature_size,), gamma, beta)
+    # batch_size=1이므로 입력을 2D로 변환하여 비교
+    input_2d = input_tensor.unsqueeze(0)
+    expected_2d = torch.nn.functional.layer_norm(input_2d, (feature_size,), gamma, beta)
+    expected = expected_2d.squeeze(0)
 
     torch.testing.assert_close(output, expected, rtol=1e-4, atol=1e-5)
 
 
-@pytest.mark.parametrize("batch_size,feature_size,description", LAYERNORM_TEST_CASES)
-def test_layernorm_cuda(batch_size, feature_size, description):
+@pytest.mark.parametrize("feature_size,description", LAYERNORM_TEST_CASES)
+def test_layernorm_cuda(feature_size, description):
     """Test CUDA LayerNorm"""
     try:
         from gpu_20days.cuda_kernels import day12_layernorm
@@ -55,12 +58,15 @@ def test_layernorm_cuda(batch_size, feature_size, description):
 
     device = ensure_cuda_device()
 
-    print(f"Testing CUDA LayerNorm with shape ({batch_size}, {feature_size}) ({description})...")
-    input_tensor = torch.randn(batch_size, feature_size, device=device, dtype=torch.float32)
+    print(f"Testing CUDA LayerNorm with shape ({feature_size},) ({description})...")
+    input_tensor = torch.randn(feature_size, device=device, dtype=torch.float32)
     gamma = torch.ones(feature_size, device=device, dtype=torch.float32)
     beta = torch.zeros(feature_size, device=device, dtype=torch.float32)
 
     output = day12_layernorm(input_tensor, gamma, beta)
-    expected = torch.nn.functional.layer_norm(input_tensor, (feature_size,), gamma, beta)
+    # batch_size=1이므로 입력을 2D로 변환하여 비교
+    input_2d = input_tensor.unsqueeze(0)
+    expected_2d = torch.nn.functional.layer_norm(input_2d, (feature_size,), gamma, beta)
+    expected = expected_2d.squeeze(0)
 
     torch.testing.assert_close(output, expected, rtol=1e-4, atol=1e-5)

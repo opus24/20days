@@ -30,7 +30,7 @@ MATRIX_ADD_TEST_CASES = [
 def test_matrixAdd_triton(n, description):
     """Test Triton matrix addition"""
     try:
-        from gpu_20days import day05_matrixAdd
+        from gpu_20days.day05_matrix import day05_matrixAdd
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

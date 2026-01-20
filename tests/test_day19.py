@@ -37,7 +37,7 @@ def create_rope_cache(seq_len, head_dim, device):
 def test_rope_triton(batch_size, num_heads, seq_len, head_dim, description):
     """Test Triton RoPE"""
     try:
-        from gpu_20days import day19_rope
+        from gpu_20days.day19_rope import day19_rope
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

@@ -29,7 +29,7 @@ SOFTMAX_TEST_CASES = [
 def test_softmax_triton(feature_size, description):
     """Test Triton Softmax"""
     try:
-        from gpu_20days import day11_softmax
+        from gpu_20days.day11_softmax import day11_softmax
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

@@ -14,8 +14,8 @@ extern "C" void day08_relu(const float* input, float* output, int N);
 extern "C" void day09_silu(const float* input, float* output, int N);
 extern "C" void day10_conv1d(const float* input, const float* kernel, float* output, int input_size, int kernel_size);
 extern "C" void day11_softmax(const float* input, float* output, int feature_size);
-extern "C" void day12_layernorm(const float* input, float* output, const float* gamma, const float* beta, int batch_size, int feature_size, float eps);
-extern "C" void day13_rmsnorm(const float* input, float* output, const float* weight, int batch_size, int feature_size, float eps);
+extern "C" void day12_layernorm(const float* input, float* output, const float* gamma, const float* beta, int feature_size, float eps);
+extern "C" void day13_rmsnorm(const float* input, float* output, const float* weight, int feature_size, float eps);
 extern "C" void day14_fused_softmax(const float* input, float* output, const float* mask, int batch_size, int seq_len, int feature_size, float scale);
 extern "C" void day15_fused_attention(const float* Q, const float* K, const float* V, float* output, const float* mask, int batch_size, int num_heads, int seq_len, int head_dim, float scale);
 extern "C" void day16_group_gemm(const float* A, const float* B, float* C, int num_groups, int M, int N, int K);
@@ -187,10 +187,9 @@ torch::Tensor day11_softmax_wrapper(torch::Tensor input) {
 torch::Tensor day12_layernorm_wrapper(torch::Tensor input, torch::Tensor gamma, torch::Tensor beta, float eps) {
     TORCH_CHECK(input.is_cuda(), "Input must be a CUDA tensor");
     TORCH_CHECK(input.dtype() == torch::kFloat32, "Input must be float32");
-    TORCH_CHECK(input.dim() == 2, "Input must be 2D tensor (batch_size, feature_size)");
+    TORCH_CHECK(input.dim() == 1, "Input must be 1D tensor (feature_size)");
 
-    int batch_size = input.size(0);
-    int feature_size = input.size(1);
+    int feature_size = input.size(0);
 
     // Default gamma and beta if not provided
     if (gamma.numel() == 0) {
@@ -207,7 +206,6 @@ torch::Tensor day12_layernorm_wrapper(torch::Tensor input, torch::Tensor gamma, 
         output.data_ptr<float>(),
         gamma.data_ptr<float>(),
         beta.data_ptr<float>(),
-        batch_size,
         feature_size,
         eps
     );
@@ -219,10 +217,9 @@ torch::Tensor day12_layernorm_wrapper(torch::Tensor input, torch::Tensor gamma, 
 torch::Tensor day13_rmsnorm_wrapper(torch::Tensor input, torch::Tensor weight, float eps) {
     TORCH_CHECK(input.is_cuda(), "Input must be a CUDA tensor");
     TORCH_CHECK(input.dtype() == torch::kFloat32, "Input must be float32");
-    TORCH_CHECK(input.dim() == 2, "Input must be 2D tensor (batch_size, feature_size)");
+    TORCH_CHECK(input.dim() == 1, "Input must be 1D tensor (feature_size)");
 
-    int batch_size = input.size(0);
-    int feature_size = input.size(1);
+    int feature_size = input.size(0);
 
     // Default weight if not provided
     if (weight.numel() == 0) {
@@ -235,7 +232,6 @@ torch::Tensor day13_rmsnorm_wrapper(torch::Tensor input, torch::Tensor weight, f
         input.data_ptr<float>(),
         output.data_ptr<float>(),
         weight.data_ptr<float>(),
-        batch_size,
         feature_size,
         eps
     );
