@@ -16,10 +16,10 @@ if str(tests_dir) not in sys.path:
 
 from conftest import benchmark_kernel_vs_pytorch, compare_kernel_with_pytorch, ensure_cuda_device
 
-# Test cases: (batch_size, num_heads, seq_len, head_dim, description)
+# Test cases: (num_heads, seq_len, head_dim, description) - batch_size is always 1
 ROPE_TEST_CASES = [
-    (1, 2, 8, 32, "small_1x2x8x32"),
-    (2, 4, 16, 64, "medium_2x4x16x64"),
+    (2, 8, 32, "small_2x8x32"),
+    (4, 16, 64, "medium_4x16x64"),
 ]
 
 
@@ -33,8 +33,8 @@ def create_rope_cache(seq_len, head_dim, device):
     return cos_cache, sin_cache
 
 
-@pytest.mark.parametrize("batch_size,num_heads,seq_len,head_dim,description", ROPE_TEST_CASES)
-def test_rope_triton(batch_size, num_heads, seq_len, head_dim, description):
+@pytest.mark.parametrize("num_heads,seq_len,head_dim,description", ROPE_TEST_CASES)
+def test_rope_triton(num_heads, seq_len, head_dim, description):
     """Test Triton RoPE"""
     try:
         from gpu_20days.day19_rope import day19_rope
@@ -43,13 +43,10 @@ def test_rope_triton(batch_size, num_heads, seq_len, head_dim, description):
 
     device = ensure_cuda_device()
 
-    print(
-        f"Testing Triton RoPE with shape ({batch_size}, {num_heads}, {seq_len}, {head_dim}) ({description})..."
-    )
-    query = torch.randn(
-        batch_size, num_heads, seq_len, head_dim, device=device, dtype=torch.float32
-    )
-    key = torch.randn(batch_size, num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
+    print(f"Testing Triton RoPE with shape ({num_heads}, {seq_len}, {head_dim}) ({description})...")
+    # batch_size is always 1, so input is 3D
+    query = torch.randn(num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
+    key = torch.randn(num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
     cos_cache, sin_cache = create_rope_cache(seq_len, head_dim // 2, device)
 
     rotated_query, rotated_key = day19_rope(query, key, cos_cache, sin_cache)
@@ -59,8 +56,8 @@ def test_rope_triton(batch_size, num_heads, seq_len, head_dim, description):
     assert rotated_key.shape == key.shape
 
 
-@pytest.mark.parametrize("batch_size,num_heads,seq_len,head_dim,description", ROPE_TEST_CASES)
-def test_rope_cuda(batch_size, num_heads, seq_len, head_dim, description):
+@pytest.mark.parametrize("num_heads,seq_len,head_dim,description", ROPE_TEST_CASES)
+def test_rope_cuda(num_heads, seq_len, head_dim, description):
     """Test CUDA RoPE"""
     try:
         from gpu_20days.cuda_kernels import day19_rope
@@ -69,13 +66,10 @@ def test_rope_cuda(batch_size, num_heads, seq_len, head_dim, description):
 
     device = ensure_cuda_device()
 
-    print(
-        f"Testing CUDA RoPE with shape ({batch_size}, {num_heads}, {seq_len}, {head_dim}) ({description})..."
-    )
-    query = torch.randn(
-        batch_size, num_heads, seq_len, head_dim, device=device, dtype=torch.float32
-    )
-    key = torch.randn(batch_size, num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
+    print(f"Testing CUDA RoPE with shape ({num_heads}, {seq_len}, {head_dim}) ({description})...")
+    # batch_size is always 1, so input is 3D
+    query = torch.randn(num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
+    key = torch.randn(num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
     cos_cache, sin_cache = create_rope_cache(seq_len, head_dim // 2, device)
 
     rotated_query, rotated_key = day19_rope(query, key, cos_cache, sin_cache)

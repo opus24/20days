@@ -15,16 +15,16 @@ if str(tests_dir) not in sys.path:
 
 from conftest import benchmark_kernel_vs_pytorch, compare_kernel_with_pytorch, ensure_cuda_device
 
-# Test cases: (batch_size, num_heads, seq_len, head_dim, description)
+# Test cases: (num_heads, seq_len, head_dim, description) - batch_size is always 1
 ATTENTION_TEST_CASES = [
-    (1, 2, 8, 32, "small_1x2x8x32"),
-    (2, 4, 16, 64, "medium_2x4x16x64"),
-    (4, 8, 32, 128, "medium_4x8x32x128"),
+    (2, 8, 32, "small_2x8x32"),
+    (4, 16, 64, "medium_4x16x64"),
+    (8, 32, 128, "medium_8x32x128"),
 ]
 
 
-@pytest.mark.parametrize("batch_size,num_heads,seq_len,head_dim,description", ATTENTION_TEST_CASES)
-def test_fused_attention_triton(batch_size, num_heads, seq_len, head_dim, description):
+@pytest.mark.parametrize("num_heads,seq_len,head_dim,description", ATTENTION_TEST_CASES)
+def test_fused_attention_triton(num_heads, seq_len, head_dim, description):
     """Test Triton Fused Attention"""
     try:
         from gpu_20days.day15_fused_attention import day15_fused_attention
@@ -34,11 +34,12 @@ def test_fused_attention_triton(batch_size, num_heads, seq_len, head_dim, descri
     device = ensure_cuda_device()
 
     print(
-        f"Testing Triton Fused Attention with shape ({batch_size}, {num_heads}, {seq_len}, {head_dim}) ({description})..."
+        f"Testing Triton Fused Attention with shape ({num_heads}, {seq_len}, {head_dim}) ({description})..."
     )
-    Q = torch.randn(batch_size, num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
-    K = torch.randn(batch_size, num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
-    V = torch.randn(batch_size, num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
+    # batch_size is always 1, so input is 3D
+    Q = torch.randn(num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
+    K = torch.randn(num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
+    V = torch.randn(num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
 
     output = day15_fused_attention(Q, K, V)
     # Reference: scaled dot-product attention
@@ -50,8 +51,8 @@ def test_fused_attention_triton(batch_size, num_heads, seq_len, head_dim, descri
     torch.testing.assert_close(output, expected, rtol=1e-4, atol=1e-5)
 
 
-@pytest.mark.parametrize("batch_size,num_heads,seq_len,head_dim,description", ATTENTION_TEST_CASES)
-def test_fused_attention_cuda(batch_size, num_heads, seq_len, head_dim, description):
+@pytest.mark.parametrize("num_heads,seq_len,head_dim,description", ATTENTION_TEST_CASES)
+def test_fused_attention_cuda(num_heads, seq_len, head_dim, description):
     """Test CUDA Fused Attention"""
     try:
         from gpu_20days.cuda_kernels import day15_fused_attention
@@ -61,11 +62,12 @@ def test_fused_attention_cuda(batch_size, num_heads, seq_len, head_dim, descript
     device = ensure_cuda_device()
 
     print(
-        f"Testing CUDA Fused Attention with shape ({batch_size}, {num_heads}, {seq_len}, {head_dim}) ({description})..."
+        f"Testing CUDA Fused Attention with shape ({num_heads}, {seq_len}, {head_dim}) ({description})..."
     )
-    Q = torch.randn(batch_size, num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
-    K = torch.randn(batch_size, num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
-    V = torch.randn(batch_size, num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
+    # batch_size is always 1, so input is 3D
+    Q = torch.randn(num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
+    K = torch.randn(num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
+    V = torch.randn(num_heads, seq_len, head_dim, device=device, dtype=torch.float32)
 
     output = day15_fused_attention(Q, K, V)
     scale = 1.0 / (head_dim**0.5)

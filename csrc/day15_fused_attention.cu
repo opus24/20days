@@ -13,11 +13,11 @@
 //
 // 모든 연산을 하나의 커널로 융합하여 성능 최적화
 //
-// 입력: Q (batch_size, num_heads, seq_len, head_dim)
-//      K (batch_size, num_heads, seq_len, head_dim)
-//      V (batch_size, num_heads, seq_len, head_dim)
+// 입력: Q (num_heads, seq_len, head_dim) - batch_size는 항상 1
+//      K (num_heads, seq_len, head_dim)
+//      V (num_heads, seq_len, head_dim)
 //      mask (optional) - attention mask
-// 출력: output (batch_size, num_heads, seq_len, head_dim)
+// 출력: output (num_heads, seq_len, head_dim)
 
 __global__ void fused_attention_kernel(
     const float* Q,
@@ -25,7 +25,6 @@ __global__ void fused_attention_kernel(
     const float* V,
     float* output,
     const float* mask,
-    int batch_size,
     int num_heads,
     int seq_len,
     int head_dim,
@@ -33,7 +32,6 @@ __global__ void fused_attention_kernel(
 ) {
     // TODO: 구현하세요
     // Fused Attention: QK^T -> scale -> mask -> softmax -> @V
-    int batch_idx = blockIdx.z;
     int head_idx = blockIdx.y;
     int seq_idx = blockIdx.x;
 
@@ -41,10 +39,8 @@ __global__ void fused_attention_kernel(
     // 각 thread는 하나의 head_dim element를 처리할 수 있습니다
     int feature_idx = threadIdx.x;
 
-    if (batch_idx < batch_size && head_idx < num_heads &&
-        seq_idx < seq_len && feature_idx < head_dim) {
-        int idx = batch_idx * num_heads * seq_len * head_dim +
-                  head_idx * seq_len * head_dim +
+    if (head_idx < num_heads && seq_idx < seq_len && feature_idx < head_dim) {
+        int idx = head_idx * seq_len * head_dim +
                   seq_idx * head_dim +
                   feature_idx;
         // TODO: Fused Attention 계산
@@ -58,18 +54,18 @@ extern "C" void day15_fused_attention(
     const float* V,
     float* output,
     const float* mask,
-    int batch_size,
     int num_heads,
     int seq_len,
     int head_dim,
     float scale
 ) {
     // TODO: kernel launch configuration 설정
+    // batch_size는 항상 1이므로 제거
     dim3 threadsPerBlock(head_dim);
-    dim3 blocksPerGrid(seq_len, num_heads, batch_size);
+    dim3 blocksPerGrid(seq_len, num_heads);
 
     fused_attention_kernel<<<blocksPerGrid, threadsPerBlock>>>(
-        Q, K, V, output, mask, batch_size, num_heads, seq_len, head_dim, scale
+        Q, K, V, output, mask, num_heads, seq_len, head_dim, scale
     );
     cudaDeviceSynchronize();
 }

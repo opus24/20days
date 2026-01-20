@@ -12,7 +12,6 @@ def day20_conv2d_kernel(
     input_ptr,
     kernel_ptr,
     output_ptr,
-    batch_size,
     in_channels,
     out_channels,
     input_h,
@@ -36,12 +35,10 @@ def day20_conv2d_kernel(
     1. 2D 슬라이딩 윈도우 패턴
     2. 메모리 타일링 최적화
     3. Shared memory 활용
+
+    batch_size는 항상 1입니다.
     """
     # TODO: 구현하세요
-    # batch_idx = tl.program_id(0)
-    # out_channel_idx = tl.program_id(1)
-    # out_row = tl.program_id(2) // output_w
-    # out_col = tl.program_id(2) % output_w
     pass
 
 
@@ -51,10 +48,16 @@ def day20_conv2d(
     padding: tuple[int, int] = (0, 0),
     stride: tuple[int, int] = (1, 1),
 ) -> torch.Tensor:
-    """Day 20: Two-dimensional convolution"""
+    """Day 20: Two-dimensional convolution (batch_size is always 1)"""
     # TODO: 구현하세요
     BLOCK_SIZE = 256
-    batch_size, in_channels, input_h, input_w = input.shape
+    # batch_size는 항상 1이므로 입력은 3D
+    if input.dim() != 3:
+        raise ValueError(
+            "day20_conv2d expects 3D tensor (in_channels, height, width), batch_size is always 1"
+        )
+
+    in_channels, input_h, input_w = input.shape
     out_channels, _, kernel_h, kernel_w = kernel.shape
 
     pad_h, pad_w = padding
@@ -63,16 +66,14 @@ def day20_conv2d(
     output_h = (input_h + 2 * pad_h - kernel_h) // stride_h + 1
     output_w = (input_w + 2 * pad_w - kernel_w) // stride_w + 1
 
-    output = torch.zeros(
-        batch_size, out_channels, output_h, output_w, device=input.device, dtype=input.dtype
-    )
+    output = torch.zeros(out_channels, output_h, output_w, device=input.device, dtype=input.dtype)
 
     def grid(meta):
-        return (batch_size, out_channels, output_h * output_w)
+        return (out_channels, triton.cdiv(output_h * output_w, BLOCK_SIZE))
 
     # day20_conv2d_kernel[grid](
     #     input, kernel, output,
-    #     batch_size, in_channels, out_channels,
+    #     in_channels, out_channels,
     #     input_h, input_w, kernel_h, kernel_w,
     #     output_h, output_w,
     #     pad_h, pad_w, stride_h, stride_w,

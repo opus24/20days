@@ -16,13 +16,13 @@ extern "C" void day10_conv1d(const float* input, const float* kernel, float* out
 extern "C" void day11_softmax(const float* input, float* output, int feature_size);
 extern "C" void day12_layernorm(const float* input, float* output, const float* gamma, const float* beta, int feature_size, float eps);
 extern "C" void day13_rmsnorm(const float* input, float* output, const float* weight, int feature_size, float eps);
-extern "C" void day14_fused_softmax(const float* input, float* output, const float* mask, int batch_size, int seq_len, int feature_size, float scale);
-extern "C" void day15_fused_attention(const float* Q, const float* K, const float* V, float* output, const float* mask, int batch_size, int num_heads, int seq_len, int head_dim, float scale);
+extern "C" void day14_fused_softmax(const float* input, float* output, const float* mask, int seq_len, int feature_size, float scale);
+extern "C" void day15_fused_attention(const float* Q, const float* K, const float* V, float* output, const float* mask, int num_heads, int seq_len, int head_dim, float scale);
 extern "C" void day16_group_gemm(const float* A, const float* B, float* C, int num_groups, int M, int N, int K);
 extern "C" void day17_persistent_matmul(const float* A, const float* B, float* C, int M, int N, int K);
 extern "C" void day18_block_scaled_matmul(const float* A, const float* B, float* C, int M, int N, int K, float scale);
-extern "C" void day19_rope(const float* query, const float* key, float* rotated_query, float* rotated_key, const float* cos_cache, const float* sin_cache, int batch_size, int num_heads, int seq_len, int head_dim);
-extern "C" void day20_conv2d(const float* input, const float* kernel, float* output, int batch_size, int in_channels, int out_channels, int input_h, int input_w, int kernel_h, int kernel_w, int output_h, int output_w, int pad_h, int pad_w, int stride_h, int stride_w);
+extern "C" void day19_rope(const float* query, const float* key, float* rotated_query, float* rotated_key, const float* cos_cache, const float* sin_cache, int num_heads, int seq_len, int head_dim);
+extern "C" void day20_conv2d(const float* input, const float* kernel, float* output, int in_channels, int out_channels, int input_h, int input_w, int kernel_h, int kernel_w, int output_h, int output_w, int pad_h, int pad_w, int stride_h, int stride_w);
 
 // Helper macro for CUDA error checking
 #define CUDA_CHECK(call) \
@@ -243,11 +243,10 @@ torch::Tensor day13_rmsnorm_wrapper(torch::Tensor input, torch::Tensor weight, f
 torch::Tensor day14_fused_softmax_wrapper(torch::Tensor input, torch::Tensor mask, float scale) {
     TORCH_CHECK(input.is_cuda(), "Input must be a CUDA tensor");
     TORCH_CHECK(input.dtype() == torch::kFloat32, "Input must be float32");
-    TORCH_CHECK(input.dim() == 3, "Input must be 3D tensor (batch_size, seq_len, feature_size)");
+    TORCH_CHECK(input.dim() == 2, "Input must be 2D tensor (seq_len, feature_size)");
 
-    int batch_size = input.size(0);
-    int seq_len = input.size(1);
-    int feature_size = input.size(2);
+    int seq_len = input.size(0);
+    int feature_size = input.size(1);
 
     // Default mask if not provided (empty tensor)
     const float* mask_ptr = nullptr;
@@ -262,7 +261,6 @@ torch::Tensor day14_fused_softmax_wrapper(torch::Tensor input, torch::Tensor mas
         input.data_ptr<float>(),
         output.data_ptr<float>(),
         mask_ptr,
-        batch_size,
         seq_len,
         feature_size,
         scale
@@ -275,12 +273,11 @@ torch::Tensor day14_fused_softmax_wrapper(torch::Tensor input, torch::Tensor mas
 torch::Tensor day15_fused_attention_wrapper(torch::Tensor Q, torch::Tensor K, torch::Tensor V, torch::Tensor mask, float scale) {
     TORCH_CHECK(Q.is_cuda() && K.is_cuda() && V.is_cuda(), "Inputs must be CUDA tensors");
     TORCH_CHECK(Q.dtype() == torch::kFloat32 && K.dtype() == torch::kFloat32 && V.dtype() == torch::kFloat32, "Inputs must be float32");
-    TORCH_CHECK(Q.dim() == 4, "Q, K, V must be 4D tensors (batch_size, num_heads, seq_len, head_dim)");
+    TORCH_CHECK(Q.dim() == 3, "Q, K, V must be 3D tensors (num_heads, seq_len, head_dim)");
 
-    int batch_size = Q.size(0);
-    int num_heads = Q.size(1);
-    int seq_len = Q.size(2);
-    int head_dim = Q.size(3);
+    int num_heads = Q.size(0);
+    int seq_len = Q.size(1);
+    int head_dim = Q.size(2);
 
     // Default scale if not provided
     if (scale <= 0.0f) {
@@ -302,7 +299,6 @@ torch::Tensor day15_fused_attention_wrapper(torch::Tensor Q, torch::Tensor K, to
         V.data_ptr<float>(),
         output.data_ptr<float>(),
         mask_ptr,
-        batch_size,
         num_heads,
         seq_len,
         head_dim,
@@ -392,12 +388,11 @@ std::tuple<torch::Tensor, torch::Tensor> day19_rope_wrapper(
 ) {
     TORCH_CHECK(query.is_cuda() && key.is_cuda(), "Inputs must be CUDA tensors");
     TORCH_CHECK(query.dtype() == torch::kFloat32 && key.dtype() == torch::kFloat32, "Inputs must be float32");
-    TORCH_CHECK(query.dim() == 4 && key.dim() == 4, "Query and key must be 4D tensors (batch_size, num_heads, seq_len, head_dim)");
+    TORCH_CHECK(query.dim() == 3 && key.dim() == 3, "Query and key must be 3D tensors (num_heads, seq_len, head_dim)");
 
-    int batch_size = query.size(0);
-    int num_heads = query.size(1);
-    int seq_len = query.size(2);
-    int head_dim = query.size(3);
+    int num_heads = query.size(0);
+    int seq_len = query.size(1);
+    int head_dim = query.size(2);
 
     torch::Tensor rotated_query = torch::zeros_like(query);
     torch::Tensor rotated_key = torch::zeros_like(key);
@@ -409,7 +404,7 @@ std::tuple<torch::Tensor, torch::Tensor> day19_rope_wrapper(
         rotated_key.data_ptr<float>(),
         cos_cache.data_ptr<float>(),
         sin_cache.data_ptr<float>(),
-        batch_size, num_heads, seq_len, head_dim
+        num_heads, seq_len, head_dim
     );
 
     return std::make_tuple(rotated_query, rotated_key);
@@ -426,13 +421,12 @@ torch::Tensor day20_conv2d_wrapper(
 ) {
     TORCH_CHECK(input.is_cuda() && kernel.is_cuda(), "Inputs must be CUDA tensors");
     TORCH_CHECK(input.dtype() == torch::kFloat32 && kernel.dtype() == torch::kFloat32, "Inputs must be float32");
-    TORCH_CHECK(input.dim() == 4, "Input must be 4D tensor (batch_size, in_channels, height, width)");
+    TORCH_CHECK(input.dim() == 3, "Input must be 3D tensor (in_channels, height, width)");
     TORCH_CHECK(kernel.dim() == 4, "Kernel must be 4D tensor (out_channels, in_channels, kernel_h, kernel_w)");
 
-    int batch_size = input.size(0);
-    int in_channels = input.size(1);
-    int input_h = input.size(2);
-    int input_w = input.size(3);
+    int in_channels = input.size(0);
+    int input_h = input.size(1);
+    int input_w = input.size(2);
 
     int out_channels = kernel.size(0);
     int kernel_h = kernel.size(2);
@@ -443,13 +437,13 @@ torch::Tensor day20_conv2d_wrapper(
 
     TORCH_CHECK(output_h > 0 && output_w > 0, "Output dimensions must be positive");
 
-    torch::Tensor output = torch::zeros({batch_size, out_channels, output_h, output_w}, input.options());
+    torch::Tensor output = torch::zeros({out_channels, output_h, output_w}, input.options());
 
     day20_conv2d(
         input.data_ptr<float>(),
         kernel.data_ptr<float>(),
         output.data_ptr<float>(),
-        batch_size, in_channels, out_channels,
+        in_channels, out_channels,
         input_h, input_w, kernel_h, kernel_w,
         output_h, output_w,
         pad_h, pad_w, stride_h, stride_w
