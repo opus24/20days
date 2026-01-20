@@ -30,7 +30,7 @@ MATRIX_COPY_TEST_CASES = [
 def test_matrixCopy_triton(n, description):
     """Test Triton matrix copy"""
     try:
-        from gpu_20days import day07_matrixCopy
+        from gpu_20days.day07_matrix import day07_matrixCopy
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

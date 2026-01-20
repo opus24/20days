@@ -19,7 +19,7 @@ from conftest import ensure_cuda_device
 def test_printAdd_triton():
     """Test Triton printAdd (identity operation)"""
     try:
-        from gpu_20days import day01_printAdd
+        from gpu_20days.day01_print import day01_printAdd
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

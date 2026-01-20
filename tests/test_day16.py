@@ -27,7 +27,7 @@ GROUP_GEMM_TEST_CASES = [
 def test_group_gemm_triton(num_groups, M, N, K, description):
     """Test Triton Group GEMM"""
     try:
-        from gpu_20days import day16_group_gemm
+        from gpu_20days.day16_group_gemm import day16_group_gemm
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

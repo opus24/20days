@@ -13,7 +13,6 @@ def day12_layernorm_kernel(
     output_ptr,
     gamma_ptr,
     beta_ptr,
-    batch_size,
     feature_size,
     eps,
     BLOCK_SIZE: tl.constexpr,
@@ -23,26 +22,47 @@ def day12_layernorm_kernel(
 
     LayerNorm(x) = gamma * (x - mean) / sqrt(variance + eps) + beta
 
-    힌트:
-    1. 각 row의 평균을 계산합니다 (reduction)
-    2. 각 row의 분산을 계산합니다 (reduction)
-    3. 정규화: (x - mean) / sqrt(variance + eps)
-    4. affine transformation: gamma * normalized + beta
     """
-    # TODO: 구현하세요
-    # batch_idx = tl.program_id(0)
-    # feature_idx = tl.arange(0, BLOCK_SIZE)
-    # mask = feature_idx < feature_size
-    pass
+
+    pid = tl.program_id(0)
+    feature_idx = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+    mask = feature_idx < feature_size
+
+    # Compute mean
+    _mean = tl.zeros([BLOCK_SIZE], dtype=tl.float32)
+    for off in range(0, feature_size, BLOCK_SIZE):
+        cols = off + tl.arange(0, BLOCK_SIZE)
+        mask_cols = cols < feature_size
+        a = tl.load(input_ptr + cols, mask=mask_cols, other=0.0).to(tl.float32)
+        _mean += tl.where(mask_cols, a, 0.0)
+    mean = tl.sum(_mean, axis=0) / feature_size
+
+    # Compute variance
+    _variance = tl.zeros([BLOCK_SIZE], dtype=tl.float32)
+    for off in range(0, feature_size, BLOCK_SIZE):
+        cols = off + tl.arange(0, BLOCK_SIZE)
+        mask_cols = cols < feature_size
+        a = tl.load(input_ptr + cols, mask=mask_cols, other=0.0).to(tl.float32)
+        _variance += tl.where(mask_cols, (a - mean) * (a - mean), 0.0)
+    variance = tl.sum(_variance, axis=0) / feature_size
+
+    input_vals = tl.load(input_ptr + feature_idx, mask=mask, other=0.0)
+    gamma_vals = tl.load(gamma_ptr + feature_idx, mask=mask, other=1.0)
+    beta_vals = tl.load(beta_ptr + feature_idx, mask=mask, other=0.0)
+    normalized = (input_vals - mean) / tl.sqrt(variance + eps)
+    output = gamma_vals * normalized + beta_vals
+    tl.store(output_ptr + feature_idx, output, mask=mask)
 
 
 def day12_layernorm(
     input: torch.Tensor, gamma: torch.Tensor = None, beta: torch.Tensor = None, eps: float = 1e-5
 ) -> torch.Tensor:
-    """Day 12: Layer normalization"""
-    # TODO: 구현하세요
+    """Day 12: Layer normalization (batch_size is always 1)"""
     BLOCK_SIZE = 256
-    batch_size, feature_size = input.shape
+    if input.dim() != 1:
+        raise ValueError("day12_layernorm expects 1D tensor (feature_size), batch_size is always 1")
+
+    feature_size = input.size(0)
 
     if gamma is None:
         gamma = torch.ones(feature_size, device=input.device, dtype=input.dtype)
@@ -52,9 +72,9 @@ def day12_layernorm(
     output = torch.zeros_like(input)
 
     def grid(meta):
-        return (batch_size,)
+        return (triton.cdiv(feature_size, BLOCK_SIZE),)
 
-    # day12_layernorm_kernel[grid](
-    #     input, output, gamma, beta, batch_size, feature_size, eps, BLOCK_SIZE=BLOCK_SIZE
-    # )
+    day12_layernorm_kernel[grid](
+        input, output, gamma, beta, feature_size, eps, BLOCK_SIZE=BLOCK_SIZE
+    )
     return output

@@ -27,7 +27,7 @@ PERSISTENT_MATMUL_TEST_CASES = [
 def test_persistent_matmul_triton(M, N, K, description):
     """Test Triton Persistent Matmul"""
     try:
-        from gpu_20days import day17_persistent_matmul
+        from gpu_20days.day17_persistent_matmul import day17_persistent_matmul
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

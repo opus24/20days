@@ -29,7 +29,7 @@ COUNT_ELEMENT_TEST_CASES = [
 def test_countElement_triton(params, description):
     """Test Triton count element"""
     try:
-        from gpu_20days import day06_countElement
+        from gpu_20days.day06_count import day06_countElement
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

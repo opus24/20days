@@ -29,7 +29,7 @@ MATMUL_TEST_CASES = [
 def test_matmul_triton(shape, description):
     """Test Triton matrix multiplication"""
     try:
-        from gpu_20days import day04_matmul
+        from gpu_20days.day04_matmul import day04_matmul
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

@@ -8,7 +8,7 @@ jobs:
       pull-requests: write
       contents: read
       issues: write
-    runs-on: [runner-base]
+    runs-on: ubuntu-latest
     name: Clear label
     steps:
       - uses: actions-ecosystem/action-remove-labels@v1.3.0
@@ -26,7 +26,7 @@ jobs:
       pull-requests: write
       contents: read
       issues: write
-    runs-on: [runner-base]
+    runs-on: ubuntu-latest
     name: Label the PR size
     steps:
       - uses: codelytv/pr-size-labeler@v1

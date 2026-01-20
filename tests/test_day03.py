@@ -37,7 +37,7 @@ VECTOR_ADD_TEST_CASES = [
 def test_vectorAdd_triton(n, description):
     """Test Triton vector addition"""
     try:
-        from gpu_20days import day03_vectorAdd
+        from gpu_20days.day03_vector import day03_vectorAdd
     except ImportError:
         pytest.skip("gpu_20days package not available")
 
@@ -76,7 +76,7 @@ def test_vectorAdd_cuda(n, description):
 def test_vectorAdd_benchmark():
     """Benchmark vector addition"""
     try:
-        from gpu_20days import day03_vectorAdd
+        from gpu_20days.day03_vector import day03_vectorAdd
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

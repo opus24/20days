@@ -27,7 +27,7 @@ BLOCK_SCALED_MATMUL_TEST_CASES = [
 def test_block_scaled_matmul_triton(M, N, K, scale, description):
     """Test Triton Block Scaled Matmul"""
     try:
-        from gpu_20days import day18_block_scaled_matmul
+        from gpu_20days.day18_block_scaled_matmul import day18_block_scaled_matmul
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

@@ -31,7 +31,7 @@ RELU_TEST_CASES = [
 def test_relu_triton(n, description):
     """Test Triton ReLU"""
     try:
-        from gpu_20days import day08_relu
+        from gpu_20days.day08_relu import day08_relu
     except ImportError:
         pytest.skip("gpu_20days package not available")
 

@@ -37,7 +37,7 @@ def conv1d_pytorch(input, kernel):
 def test_conv1d_triton(params, description):
     """Test Triton 1D convolution"""
     try:
-        from gpu_20days import day10_conv1d
+        from gpu_20days.day10_conv import day10_conv1d
     except ImportError:
         pytest.skip("gpu_20days package not available")
 
