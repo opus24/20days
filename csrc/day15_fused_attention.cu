@@ -1,51 +1,63 @@
 #include <cuda_runtime.h>
-#define ceil(x, y) (((x) + (y) - 1) / (y))
 
-// TODO: Fused Attention kernel 구현
-// Attention(Q, K, V) = softmax(QK^T / sqrt(d_k)) * V
-//
-// 힌트:
-// 1. Q @ K^T 계산 (matrix multiplication)
-// 2. Scale by sqrt(d_k)
-// 3. Apply mask (optional)
-// 4. Softmax
-// 5. @ V (matrix multiplication)
-//
-// 모든 연산을 하나의 커널로 융합하여 성능 최적화
-//
-// 입력: Q (num_heads, seq_len, head_dim) - batch_size는 항상 1
-//      K (num_heads, seq_len, head_dim)
-//      V (num_heads, seq_len, head_dim)
-//      mask (optional) - attention mask
-// 출력: output (num_heads, seq_len, head_dim)
-
+// Fused Attention: softmax(Q @ K^T * scale) @ V
+// Each block handles one (head, query_row) pair
 __global__ void fused_attention_kernel(
     const float* Q,
     const float* K,
     const float* V,
     float* output,
-    const float* mask,
-    int num_heads,
     int seq_len,
     int head_dim,
     float scale
 ) {
-    // TODO: 구현하세요
-    // Fused Attention: QK^T -> scale -> mask -> softmax -> @V
-    int head_idx = blockIdx.y;
-    int seq_idx = blockIdx.x;
+    int head = blockIdx.y;
+    int row = blockIdx.x;
+    int d = threadIdx.x;
 
-    // TODO: Attention 계산
-    // 각 thread는 하나의 head_dim element를 처리할 수 있습니다
-    int feature_idx = threadIdx.x;
+    if (d >= head_dim) return;
 
-    if (head_idx < num_heads && seq_idx < seq_len && feature_idx < head_dim) {
-        int idx = head_idx * seq_len * head_dim +
-                  seq_idx * head_dim +
-                  feature_idx;
-        // TODO: Fused Attention 계산
-        output[idx] = Q[idx];
+    int head_offset = head * seq_len * head_dim;
+    int q_base = head_offset + row * head_dim;
+
+    float q_val = Q[q_base + d];
+
+    // Online softmax variables
+    float max_score = -INFINITY;
+    float sum_exp = 0.0f;
+    float out_val = 0.0f;
+
+    // Process each key-value pair
+    for (int s = 0; s < seq_len; s++) {
+        int kv_base = head_offset + s * head_dim;
+
+        // Compute Q · K (need reduction across threads)
+        __shared__ float dot_buffer[256];
+        dot_buffer[d] = q_val * K[kv_base + d];
+        __syncthreads();
+
+        // Parallel reduction for dot product
+        for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
+            if (d < stride && d + stride < head_dim) {
+                dot_buffer[d] += dot_buffer[d + stride];
+            }
+            __syncthreads();
+        }
+
+        float score = dot_buffer[0] * scale;
+
+        // Online softmax update
+        float new_max = fmaxf(max_score, score);
+        float correction = expf(max_score - new_max);
+        float exp_score = expf(score - new_max);
+
+        out_val = out_val * correction + exp_score * V[kv_base + d];
+        sum_exp = sum_exp * correction + exp_score;
+        max_score = new_max;
     }
+
+    // Normalize and store
+    output[q_base + d] = out_val / sum_exp;
 }
 
 extern "C" void day15_fused_attention(
@@ -59,13 +71,13 @@ extern "C" void day15_fused_attention(
     int head_dim,
     float scale
 ) {
-    // TODO: kernel launch configuration 설정
-    // batch_size는 항상 1이므로 제거
-    dim3 threadsPerBlock(head_dim);
-    dim3 blocksPerGrid(seq_len, num_heads);
+    int threads = head_dim;
+    if (threads > 256) threads = 256;
 
-    fused_attention_kernel<<<blocksPerGrid, threadsPerBlock>>>(
-        Q, K, V, output, mask, num_heads, seq_len, head_dim, scale
+    dim3 blocks(seq_len, num_heads);
+
+    fused_attention_kernel<<<blocks, threads>>>(
+        Q, K, V, output, seq_len, head_dim, scale
     );
     cudaDeviceSynchronize();
 }
