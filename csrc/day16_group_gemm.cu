@@ -1,17 +1,6 @@
 #include <cuda_runtime.h>
 #define ceil(x, y) (((x) + (y) - 1) / (y))
 
-// TODO: Group GEMM kernel 구현
-// 여러 행렬 곱셈을 배치로 처리합니다
-//
-// 힌트:
-// 1. 여러 (A, B) 행렬 쌍을 배치로 처리
-// 2. 각 그룹의 행렬 곱셈을 병렬로 수행
-// 3. 메모리 레이아웃 최적화 (interleaved 또는 contiguous)
-//
-// 입력: A (num_groups, M, K), B (num_groups, K, N)
-// 출력: C (num_groups, M, N)
-
 __global__ void group_gemm_kernel(
     const float* A,
     const float* B,
@@ -21,16 +10,31 @@ __global__ void group_gemm_kernel(
     int N,
     int K
 ) {
-    // TODO: 구현하세요
-    // 각 thread는 하나의 그룹의 행렬 곱셈을 처리할 수 있습니다
     int group_idx = blockIdx.x;
     int row_idx = blockIdx.y;
     int col_idx = threadIdx.x;
 
     if (group_idx < num_groups && row_idx < M && col_idx < N) {
-        // TODO: Group GEMM 계산
-        int c_idx = group_idx * M * N + row_idx * N + col_idx;
-        C[c_idx] = 0.0f;
+        int A_group_offset = group_idx * M * K;
+        int B_group_offset = group_idx * K * N;
+        int C_group_offset = group_idx * M * N;
+
+        int A_row_offset = row_idx * K;
+        int C_row_offset = row_idx * N;
+
+        float accumulator = 0.0f;
+        for (int k = 0; k < K; k++) {
+            int a_idx = A_group_offset + A_row_offset + k;
+            int b_idx = B_group_offset + k * N + col_idx;
+
+            float a_val = A[a_idx];
+            float b_val = B[b_idx];
+
+            accumulator += a_val * b_val;
+        }
+
+        int c_idx = C_group_offset + C_row_offset + col_idx;
+        C[c_idx] = accumulator;
     }
 }
 
@@ -43,7 +47,6 @@ extern "C" void day16_group_gemm(
     int N,
     int K
 ) {
-    // TODO: kernel launch configuration 설정
     dim3 threadsPerBlock(N);
     dim3 blocksPerGrid(num_groups, M);
 
