@@ -1,35 +1,69 @@
 #include <cuda_runtime.h>
-#include <cmath>
-#define ceil(x, y) (((x) + (y) - 1) / (y))
 
-// TODO: Block Scaled Matrix Multiplication kernel 구현
-// 블록 단위로 스케일링을 적용한 행렬 곱셈
-//
-// 힌트:
-// 1. 행렬 곱셈 수행
-// 2. 블록 단위로 스케일링 적용
-// 3. 수치 정밀도 고려
-//
-// 입력: A (M, K), B (K, N), scale (block_size)
-// 출력: C (M, N) = scaled(A @ B)
+#define TILE_SIZE 32
+#define ceil_div(x, y) (((x) + (y) - 1) / (y))
+
+// block_scaled 기법은 Blackwell 이상에서만 가능
+// 따라서 Shared Memory 타일링 연습으로 수정
+// A(M,K) @ B(K,N) * scale = C(M,N)
 
 __global__ void block_scaled_matmul_kernel(
     const float* A,
     const float* B,
     float* C,
-    int M,
-    int N,
-    int K,
+    int M, int K, int N,
     float scale
 ) {
-    // TODO: 구현하세요
-    int row_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    int col_idx = blockIdx.y * blockDim.y + threadIdx.y;
+    // Shared Memory 선언
+    __shared__ float As[TILE_SIZE][TILE_SIZE];
+    __shared__ float Bs[TILE_SIZE][TILE_SIZE];
 
-    if (row_idx < M && col_idx < N) {
-        // TODO: Block Scaled Matmul 계산
-        int c_idx = row_idx * N + col_idx;
-        C[c_idx] = 0.0f;
+    // 블록/스레드 인덱스
+    int bx = blockIdx.x;   // M 방향 블록
+    int by = blockIdx.y;   // N 방향 블록
+    int tx = threadIdx.x;  // 타일 내 행
+    int ty = threadIdx.y;  // 타일 내 열
+
+    // 이 스레드가 계산할 C의 위치
+    int row = bx * TILE_SIZE + tx;
+    int col = by * TILE_SIZE + ty;
+
+    float accumulator = 0.0f;
+
+    // K 축을 따라 타일 단위로 순회
+    int num_tiles = ceil_div(K, TILE_SIZE);
+    for (int t = 0; t < num_tiles; t++) {
+        // A 타일 로드: A[row, t*TILE_SIZE + ty]
+        int a_col = t * TILE_SIZE + ty;
+        if (row < M && a_col < K) {
+            As[tx][ty] = A[row * K + a_col];
+        } else {
+            As[tx][ty] = 0.0f;
+        }
+
+        // B 타일 로드: B[t*TILE_SIZE + tx, col]
+        int b_row = t * TILE_SIZE + tx;
+        if (b_row < K && col < N) {
+            Bs[tx][ty] = B[b_row * N + col];
+        } else {
+            Bs[tx][ty] = 0.0f;
+        }
+
+        // 모든 스레드가 로드 완료할 때까지 대기
+        __syncthreads();
+
+        // 타일 내 내적 계산
+        for (int k = 0; k < TILE_SIZE; k++) {
+            accumulator += As[tx][k] * Bs[k][ty];
+        }
+
+        // 다음 타일 로드 전 대기
+        __syncthreads();
+    }
+
+    // Scale 적용 후 저장
+    if (row < M && col < N) {
+        C[row * N + col] = accumulator * scale;
     }
 }
 
@@ -42,12 +76,11 @@ extern "C" void day18_block_scaled_matmul(
     int K,
     float scale
 ) {
-    // TODO: kernel launch configuration 설정
-    dim3 threadsPerBlock(16, 16);
-    dim3 blocksPerGrid(ceil(M, 16), ceil(N, 16));
+    dim3 threadsPerBlock(TILE_SIZE, TILE_SIZE);
+    dim3 blocksPerGrid(ceil_div(M, TILE_SIZE), ceil_div(N, TILE_SIZE));
 
     block_scaled_matmul_kernel<<<blocksPerGrid, threadsPerBlock>>>(
-        A, B, C, M, N, K, scale
+        A, B, C, M, K, N, scale
     );
     cudaDeviceSynchronize();
 }
