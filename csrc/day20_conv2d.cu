@@ -1,18 +1,7 @@
 #include <cuda_runtime.h>
 #define ceil(x, y) (((x) + (y) - 1) / (y))
 
-// TODO: 2D Convolution kernel 구현
-// 2D 컨볼루션 연산을 수행합니다
-//
-// 힌트:
-// 1. 2D 슬라이딩 윈도우 패턴
-// 2. 메모리 타일링 최적화
-// 3. Shared memory 활용
-//
-// 입력: input (in_channels, height, width) - batch_size는 항상 1
-//      kernel (out_channels, in_channels, kernel_h, kernel_w)
-//      padding, stride
-// 출력: output (out_channels, out_height, out_width)
+// 2D Convolution: 출력 한 픽셀당 스레드 하나. 입력 채널 × 커널 높이 × 커널 너비만큼 합산.
 
 __global__ void conv2d_kernel(
     const float* input,
@@ -31,21 +20,39 @@ __global__ void conv2d_kernel(
     int stride_h,
     int stride_w
 ) {
-    // TODO: 구현하세요
-    // 2D 컨볼루션 계산
-    int out_channel_idx = blockIdx.y;
-    int out_row = blockIdx.x / output_w;
-    int out_col = blockIdx.x % output_w;
+    // 1차원 그리드: 스레드 하나가 출력 한 칸 담당
+    int total_out = out_channels * output_h * output_w;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int thread_idx = threadIdx.x;
+    if (idx >= total_out)
+        return;
 
-    if (out_channel_idx < out_channels && out_row < output_h && out_col < output_w) {
-        // TODO: 2D Convolution 계산
-        int out_idx = out_channel_idx * output_h * output_w +
-                      out_row * output_w +
-                      out_col;
-        output[out_idx] = 0.0f;
+    // 출력 인덱스 (oc, oh, ow) 계산
+    int out_spatial = output_h * output_w;
+    int out_channel_idx = idx / out_spatial;
+    int out_linear = idx % out_spatial;
+    int out_row = out_linear / output_w;
+    int out_col = out_linear % output_w;
+
+    // 이 출력 칸에 대해서 입력 × 커널 합산
+    float sum = 0.0f;
+    for (int c = 0; c < in_channels; c++) {
+        for (int kh = 0; kh < kernel_h; kh++) {
+            for (int kw = 0; kw < kernel_w; kw++) {
+                int in_h = out_row * stride_h + kh - pad_h;
+                int in_w = out_col * stride_w + kw - pad_w;
+                if (in_h >= 0 && in_h < input_h && in_w >= 0 && in_w < input_w) {
+                    int in_idx = c * input_h * input_w + in_h * input_w + in_w;
+                    int k_idx = out_channel_idx * in_channels * kernel_h * kernel_w
+                                + c * kernel_h * kernel_w + kh * kernel_w + kw;
+                    sum += input[in_idx] * kernel[k_idx];
+                }
+            }
+        }
     }
+
+    int out_idx = out_channel_idx * output_h * output_w + out_row * output_w + out_col;
+    output[out_idx] = sum;
 }
 
 extern "C" void day20_conv2d(
@@ -65,12 +72,11 @@ extern "C" void day20_conv2d(
     int stride_h,
     int stride_w
 ) {
-    // TODO: kernel launch configuration 설정
-    // batch_size는 항상 1이므로 제거
-    dim3 threadsPerBlock(256);
-    dim3 blocksPerGrid(output_h * output_w, out_channels);
+    int total_out = output_h * output_w * out_channels;
+    int threads = 256;
+    int blocks = ceil(total_out, threads);
 
-    conv2d_kernel<<<blocksPerGrid, threadsPerBlock>>>(
+    conv2d_kernel<<<blocks, threads>>>(
         input, kernel, output,
         in_channels, out_channels,
         input_h, input_w, kernel_h, kernel_w,
